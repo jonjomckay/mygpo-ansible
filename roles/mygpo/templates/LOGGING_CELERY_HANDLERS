@@ -1,0 +1,1 @@
+{{ mygpo.configuration.logging_celery_handlers }}

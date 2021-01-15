@@ -1,0 +1,1 @@
+{{ mygpo.configuration.google_analytics_property_id }}

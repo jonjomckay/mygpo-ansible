@@ -1,0 +1,1 @@
+{{ mygpo.configuration.api_actions_max_nonbg }}

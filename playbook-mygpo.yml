@@ -1,0 +1,6 @@
+- name: mygpo
+  hosts: mygpo
+  roles:
+    - mygpo
+  vars_files:
+    - vars/{{ env }}.yml

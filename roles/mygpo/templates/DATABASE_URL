@@ -1,0 +1,1 @@
+postgres://{{ mygpo.database.username }}:{{ mygpo.database.password }}@{{ mygpo.database.hostname }}/{{ mygpo.database.name }}

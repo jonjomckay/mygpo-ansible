@@ -1,0 +1,1 @@
+{{ mygpo.configuration.cache_backend }}

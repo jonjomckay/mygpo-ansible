@@ -1,0 +1,20 @@
+nginx:
+  certbot:
+    create: no
+    email: jonjo@jonjomckay.com
+  domains:
+    - jonjomckay.com
+
+mygpo:
+  configuration:
+    debug: "True"
+    email_backend: django.core.mail.backends.console.EmailBackend
+    secret_key: secret
+
+  database:
+    name: mygpo
+    hostname: localhost
+    password: mygpo
+    username: mygpo
+    superuser_username: postgres
+    superuser_password: password

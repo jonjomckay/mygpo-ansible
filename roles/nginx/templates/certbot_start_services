@@ -1,0 +1,4 @@
+#!/bin/sh
+# {{ ansible_managed }}
+
+systemctl start nginx

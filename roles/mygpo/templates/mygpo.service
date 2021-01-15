@@ -1,0 +1,13 @@
+[Unit]
+Description=mygpo running under gunicorn
+Requires=mygpo.socket
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/mygpo
+ExecStart=/usr/bin/envdir envs/prod ./venv/bin/gunicorn -c conf/gunicorn.conf.py mygpo.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

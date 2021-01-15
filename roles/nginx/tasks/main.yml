@@ -1,0 +1,60 @@
+# TODO: Remove this once https://github.com/geerlingguy/ansible-role-nginx/pull/207 is merged
+- name: Add nginx repository key
+  become: yes
+  apt_key:
+    url: https://nginx.org/keys/nginx_signing.key
+    state: present
+
+# TODO: Remove this once https://github.com/geerlingguy/ansible-role-nginx/pull/207 is merged
+- name: Add nginx repository
+  become: yes
+  apt_repository:
+    repo: deb http://nginx.org/packages/ubuntu {{ ansible_distribution_release }} nginx
+    state: present
+    mode: 0644
+    update_cache: yes
+
+- block:
+  - name: Install nginx
+    include_role:
+      name: geerlingguy.nginx
+
+  - name: Install certbot
+    include_role:
+      name: geerlingguy.certbot
+    vars:
+      certbot_admin_email: "{{ nginx.certbot.email }}"
+      certbot_create_if_missing: "{{ nginx.certbot.create }}"
+      certbot_create_standalone_stop_services:
+        - nginx
+      certbot_certs:
+        - domains: "{{ nginx.domains }}"
+
+  - name: Create certbot pre and post hook folders
+    file:
+      path: /etc/letsencrypt/renewal-hooks/{{ item }}
+      state: directory
+      mode: 0755
+      owner: root
+      group: root
+    with_items:
+      - pre
+      - post
+
+  - name: Create certbot pre hook to stop services
+    template:
+      src: certbot_stop_services
+      dest: /etc/letsencrypt/renewal-hooks/pre/stop_services
+      owner: root
+      group: root
+      mode: 0750
+
+  - name: Create certbot post hook to start services
+    template:
+      src: certbot_start_services
+      dest: /etc/letsencrypt/renewal-hooks/post/start_services
+      owner: root
+      group: root
+      mode: 0750
+
+  become: yes

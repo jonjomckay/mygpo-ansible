@@ -1,0 +1,150 @@
+- name: Install Git
+  become: yes
+  package:
+    name:
+      - git
+
+# TODO: Make /srv/mygpo a variable
+- name: Create /srv/mygpo
+  become: yes
+  file:
+    dest: /srv/mygpo
+    state: directory
+    owner: www-data
+    group: www-data
+
+- name: Check out mygpo
+  become: yes
+  git:
+    repo: git://github.com/jonjomckay/mygpo.git # TODO: Change this
+    dest: /srv/mygpo
+    force: yes
+    update: yes
+    version: ansible # TODO: Change this
+
+- name: Install mygpo package dependencies
+  become: yes
+  package:
+    name:
+      - daemontools
+      - libpq-dev
+      - python3-dev
+      - python3-pip
+      - python3-psycopg2
+      - python3-venv
+
+- name: Install mygpo Python dependencies
+  pip:
+    requirements: /srv/mygpo/requirements.txt
+    virtualenv: /srv/mygpo/venv
+    virtualenv_python: python3
+
+# TODO: Make "prod" a variable
+- name: Create mygpo envdir
+  become: yes
+  file:
+    dest: /srv/mygpo/envs/prod
+    owner: www-data
+    group: www-data
+    mode: 1700
+    state: directory
+
+- name: Configure mygpo
+  become: yes
+  template:
+    src: "{{ item }}"
+    dest: /srv/mygpo/envs/prod/{{ item }}
+    owner: www-data
+    group: www-data
+    mode: 0700
+  with_items:
+    # - ADMINS
+    # - ADSENSE_CLIENT
+    # - ADSENSE_SLOT_BOTTOM   
+    # - API_ACTIONS_MAX_NONBG
+    # - BROKER_POOL_LIMIT
+    # - BROKER_URL
+    # - CACHE_BACKEND
+    # - CACHE_LOCATION
+    # - DATA_UPLOAD_MAX_MEMORY_SIZE
+    - DATABASE_URL
+    - DEBUG
+    # - DEFAULT_BASE_URL
+    # - DEFAULT_FROM_EMAIL
+    # - DIRECTORY_EXCLUDED_TAGS
+    # - ELASTICSEARCH_SERVER
+    # - ELASTICSEARCH_TIMEOUT
+    - EMAIL_BACKEND
+    # - FLATTR_KEY
+    # - FLATTR_SECRET
+    # - FLICKR_API_KEY
+    # - GOOGLE_ANALYTICS_PROPERTY_ID
+    # - GOOGLE_CLIENT_ID
+    # - GOOGLE_CLIENT_SECRET
+    # - LOGGING_CELERY_HANDLERS
+    # - LOGGING_DJANGO_HANDLERS
+    # - LOGGING_FILENAME
+    # - LOGGING_MYGPO_HANDLERS
+    # - MAINTENANCE
+    # - OPBEAT_APP_ID
+    # - OPBEAT_ORGANIZATION_ID
+    # - OPBEAT_SECRET_TOKEN
+    # - PODCAST_AD_ID
+    - SECRET_KEY
+    # - SENTRY_DSN
+    # - SERVER_EMAIL
+    # - SOUNDCLOUD_CONSUMER_KEY
+    # - STAFF_TOKEN
+    # - SUPPORT_URL
+
+- name: Create database
+  community.general.postgresql_user:
+    name: "{{ mygpo.database.name }}"
+    login_host: "{{ mygpo.database.hostname }}"
+    login_user: "{{ mygpo.database.superuser_username }}"
+    login_password: "{{ mygpo.database.superuser_password }}"
+
+- name: Create database user
+  community.general.postgresql_user:
+    db: "{{ mygpo.database.name}}"
+    name: "{{ mygpo.database.username }}"
+    password: "{{ mygpo.database.password }}"
+    login_host: "{{ mygpo.database.hostname }}"
+    login_user: "{{ mygpo.database.superuser_username }}"
+    login_password: "{{ mygpo.database.superuser_password }}"
+
+- name: Run mygpo migrations
+  become: yes
+  shell:
+    cmd: /usr/bin/envdir envs/prod ./venv/bin/python manage.py migrate
+    chdir: /srv/mygpo
+
+- name: Copy systemd units
+  become: yes
+  template:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/{{ item }}
+  with_items:
+    - mygpo.service
+    - mygpo.socket
+
+- name: Enable systemd units
+  become: yes
+  systemd:
+    name: mygpo.socket
+    enabled: yes
+    state: restarted
+
+- name: Configure mygpo vhost
+  become: yes
+  template:
+    src: mygpo.conf
+    dest: /etc/nginx/sites-enabled/mygpo.conf
+  register: mygpo_vhost
+
+- name: Reload nginx
+  become: yes
+  systemd:
+    name: nginx
+    state: reloaded
+  when: mygpo_vhost.changed

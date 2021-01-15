@@ -1,0 +1,1 @@
+{{ mygpo.configuration.directory_excluded_tags }}

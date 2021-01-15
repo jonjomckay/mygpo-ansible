@@ -1,0 +1,1 @@
+{{ mygpo.configuration.default_base_url }}

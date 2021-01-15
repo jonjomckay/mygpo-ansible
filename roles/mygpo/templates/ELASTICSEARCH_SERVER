@@ -1,0 +1,1 @@
+{{ mygpo.configuration.elasticsearch_server }}
